@@ -121,7 +121,7 @@ export default function Courses() {
               >
                 <td className="p-2">
                   <img
-                    src={`http://localhost:5000/uploads/${course.image}`}
+                    src={`https://edutest-backend-0r41.onrender.com/uploads/${course.image}`}
                     className="w-12 h-12 rounded"
                   />
                 </td>
