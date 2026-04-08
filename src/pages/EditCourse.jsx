@@ -254,7 +254,7 @@ export default function EditCourse() {
         <input type="file" onChange={handleImage} />
 
         {form.image && (
-          <img src={`http://localhost:5000/uploads/${form.image}`} className="w-24 h-24" />
+          <img src={`https://edutest-backend-0r41.onrender.com/uploads/${form.image}`} className="w-24 h-24" />
         )}
 
         <button disabled={loading} className="bg-green-500 text-white px-4 py-2 rounded">
