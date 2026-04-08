@@ -115,7 +115,7 @@ export default function Dashboard() {
               >
                 <div className="flex items-center gap-3">
                   <img
-                    src={`http://localhost:5000/uploads/${c.image}`}
+                    src={`https://edutest-backend-0r41.onrender.com/uploads/${c.image}`}
                     className="w-10 h-10 rounded"
                   />
                   <span>{c.title}</span>
