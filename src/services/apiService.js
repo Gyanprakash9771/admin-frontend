@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:5000/api", // your backend URL
+  baseURL: "https://edutest-backend-0r41.onrender.com/api", // your backend URL
 });
 
 // ✅ ADD THIS (auto attach token)
