@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import MainLayout from "./Layouts/MainLayout";
 
 import Dashboard from "./pages/Dashboard";
@@ -17,7 +17,7 @@ export default function App() {
     <>
       <Toaster position="top-right" />
 
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
 
           {/* ✅ LOGIN (NO LAYOUT) */}
@@ -45,7 +45,7 @@ export default function App() {
           />
 
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </>
   );
 }
