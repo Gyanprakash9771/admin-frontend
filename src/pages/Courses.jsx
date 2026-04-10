@@ -120,11 +120,19 @@ export default function Courses() {
                 className="bg-gray-50 dark:bg-gray-700 rounded-lg shadow hover:scale-[1.01] transition"
               >
                 <td className="p-2">
-                  <img
-                    src={`https://edutest-backend-0r41.onrender.com/uploads/${course.image}`}
-                    className="w-12 h-12 rounded"
-                  />
-                </td>
+  <img
+    src={
+      course.image?.startsWith("http")
+        ? course.image
+        : `https://edutest-backend-0r41.onrender.com/uploads/${course.image}`
+    }
+    alt="course"
+    className="w-12 h-12 rounded object-cover"
+    onError={(e) => {
+      e.target.src = "https://via.placeholder.com/100";
+    }}
+  />
+</td>
 
                 <td className="p-2 font-medium text-black dark:text-white">
                   {course.title}

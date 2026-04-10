@@ -6,7 +6,7 @@ export default function Navbar({ toggleSidebar }) {
   const [darkMode, setDarkMode] = useState(false);
   const dropdownRef = useRef();
 
-  // Close dropdown when clicking outside
+  // Close dropdown
   useEffect(() => {
     function handleClickOutside(e) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -17,12 +17,13 @@ export default function Navbar({ toggleSidebar }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Apply dark mode
+  // Load dark mode
   useEffect(() => {
     const saved = localStorage.getItem("theme");
     if (saved === "dark") setDarkMode(true);
   }, []);
 
+  // Apply dark mode
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add("dark");
@@ -33,7 +34,7 @@ export default function Navbar({ toggleSidebar }) {
     }
   }, [darkMode]);
 
-  // ✅ ADDED LOGOUT FUNCTION
+  // Logout
   const handleLogout = () => {
     localStorage.removeItem("token");
     setOpen(false);
@@ -41,61 +42,78 @@ export default function Navbar({ toggleSidebar }) {
   };
 
   return (
-    <div className="h-14 bg-[#2f3e4d] dark:bg-gray-900 text-white flex items-center justify-between px-4">
-      
-      {/* Left */}
-      <div className="flex items-center gap-4">
-        <Menu 
-          className="cursor-pointer"
+    <div className="navbar-custom d-flex align-items-center justify-content-between px-3">
+
+      {/* LEFT */}
+      <div className="d-flex align-items-center gap-3">
+        <Menu
+          style={{ cursor: "pointer" }}
           onClick={toggleSidebar}
         />
-        <h1 className="font-bold">EDUTEST</h1>
+        <h5 className="mb-0 fw-bold">EDUTEST</h5>
       </div>
 
-      {/* Right */}
-      <div className="flex items-center gap-4 relative" ref={dropdownRef}>
-        
-        {/* Dark Mode Toggle */}
-        <button onClick={() => setDarkMode(!darkMode)}>
-          {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+      {/* RIGHT */}
+      <div className="d-flex align-items-center gap-3 position-relative" ref={dropdownRef}>
+
+        {/* Dark Mode */}
+        <button
+          className="btn btn-sm btn-outline-light"
+          onClick={() => setDarkMode(!darkMode)}
+        >
+          {darkMode ? <Sun size={18} /> : <Moon size={18} />}
         </button>
 
+        {/* Bell */}
         <Bell />
 
-        {/* Profile Image */}
-        <img
-          src="https://i.pravatar.cc/40"
-          className="w-8 h-8 rounded-full cursor-pointer"
-          onClick={() => setOpen(!open)}
-        />
+        {/* Profile + Dropdown FIX */}
+        <div className="position-relative">
+          <img
+            src="https://i.pravatar.cc/40"
+            className="rounded-circle"
+            width="32"
+            height="32"
+            style={{ cursor: "pointer" }}
+            onClick={() => setOpen(!open)}
+          />
 
-        {/* Dropdown */}
-        {open && (
-          <div className="absolute right-0 top-12 w-48 bg-white dark:bg-gray-800 text-black dark:text-white rounded shadow-lg py-2 z-50">
-            
-            {/* User Info */}
-            <div className="px-4 py-2 border-b dark:border-gray-600">
-              <p className="text-sm font-semibold">Admin User</p>
-              <p className="text-xs text-gray-500 dark:text-gray-300">admin@gmail.com</p>
+          {open && (
+            <div
+              className="dropdown-menu show mt-2 p-2 shadow"
+              style={{
+                position: "absolute",
+                right: 0,
+                top: "100%",
+                width: "200px",
+                zIndex: 1000
+              }}
+            >
+              
+              {/* User Info */}
+              <div className="px-2 pb-2 border-bottom">
+                <p className="mb-0 fw-semibold">Admin User</p>
+                <small className="text-muted">admin@gmail.com</small>
+              </div>
+
+              {/* Options */}
+              <div className="d-flex flex-column mt-2">
+                <button className="dropdown-item d-flex align-items-center gap-2">
+                  <User size={16} /> Profile
+                </button>
+
+                <button
+                  onClick={handleLogout}
+                  className="dropdown-item d-flex align-items-center gap-2 text-danger"
+                >
+                  <LogOut size={16} /> Logout
+                </button>
+              </div>
+
             </div>
+          )}
+        </div>
 
-            {/* Options */}
-            <div className="flex flex-col">
-              <button className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">
-                <User size={16} /> Profile
-              </button>
-
-              {/* ✅ UPDATED LOGOUT BUTTON */}
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-red-500"
-              >
-                <LogOut size={16} /> Logout
-              </button>
-            </div>
-
-          </div>
-        )}
       </div>
     </div>
   );

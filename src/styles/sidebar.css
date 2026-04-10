@@ -1,0 +1,18 @@
+.sidebar-custom {
+  width: 250px;
+  height: 100vh;
+  background-color: #2f3e4d;
+  color: white;
+}
+
+.sidebar-link:hover {
+  background-color: #3c4f63;
+}
+
+.sidebar-sublink {
+  color: #adb5bd;
+}
+
+.sidebar-sublink:hover {
+  color: white;
+}

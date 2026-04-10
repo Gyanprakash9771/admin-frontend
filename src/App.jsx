@@ -7,10 +7,12 @@ import AddCourse from "./pages/AddCourse";
 import Users from "./pages/Users";
 import Categories from "./pages/Categories";
 import EditCourse from "./pages/EditCourse";
-import AdminLogin from "./pages/AdminLogin"; // ✅ ADDED
-import ProtectedRoute from "./components/ProtectedRoute"; // ✅ ADDED
+import AdminLogin from "./pages/AdminLogin"; 
+import ProtectedRoute from "./components/ProtectedRoute"; 
 import { Toaster } from "react-hot-toast";
 import AdminRegister from "./pages/AdminRegister";
+import AddLecture from "./pages/AddLecture";
+import LessonList from "./pages/LessonList";
 
 export default function App() {
   return (
@@ -20,11 +22,11 @@ export default function App() {
       <HashRouter>
         <Routes>
 
-          {/* ✅ LOGIN (NO LAYOUT) */}
+          
           <Route path="/admin-login" element={<AdminLogin />} />
           <Route path="/admin-register" element={<AdminRegister />} />
 
-          {/* ✅ PROTECTED APP */}
+          
           <Route
             path="/*"
             element={
@@ -37,6 +39,8 @@ export default function App() {
                     <Route path="/users" element={<Users />} />
                     <Route path="/categories" element={<Categories />} />
                     <Route path="/edit-course/:id" element={<EditCourse />} />
+                    <Route path="/lessons" element={<AddLecture />} />
+                    <Route path="/lessonlist" element={<LessonList />} />
                     
                   </Routes>
                 </MainLayout>

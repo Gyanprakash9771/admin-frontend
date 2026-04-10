@@ -19,14 +19,14 @@ export default function AdminLogin() {
         try {
             const res = await API.post("/admin/login", form);
 
-            // ✅ store token
+            
             localStorage.setItem("token", res.data.token);
 
-            toast.success("Admin Login Successful 🚀");
+            toast.success("Admin Login Successful ");
 
-            navigate("/"); // dashboard
+            navigate("/"); 
         } catch (err) {
-            toast.error("Invalid Credentials ❌");
+            toast.error("Invalid Credentials ");
         } finally {
             setLoading(false);
         }
@@ -43,7 +43,7 @@ export default function AdminLogin() {
                     Admin Login
                 </h2>
 
-                {/* Email */}
+                
                 <input
                     type="email"
                     placeholder="Email"
@@ -54,7 +54,7 @@ export default function AdminLogin() {
                     className="w-full p-2 border rounded bg-gray-100 dark:bg-gray-700"
                 />
 
-                {/* Password */}
+                
                 <input
                     type="password"
                     placeholder="Password"
@@ -65,7 +65,7 @@ export default function AdminLogin() {
                     className="w-full p-2 border rounded bg-gray-100 dark:bg-gray-700"
                 />
 
-                {/* Button */}
+                
                 <button
                     disabled={loading}
                     className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600"

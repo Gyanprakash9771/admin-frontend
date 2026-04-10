@@ -17,210 +17,204 @@ export default function Sidebar() {
     setOpenMenu(openMenu === menu ? null : menu);
   };
 
+  const linkBase = {
+    padding: "10px 14px",
+    borderRadius: "10px",
+    transition: "all 0.25s ease",
+    cursor: "pointer",
+  };
+
+  const hoverEffect = (e, enter) => {
+    e.currentTarget.style.background = enter
+      ? "rgba(255,255,255,0.08)"
+      : "transparent";
+    e.currentTarget.style.transform = enter ? "translateX(4px)" : "none";
+  };
+
   return (
-    <div className="h-full w-64 bg-[#2f3e4d] dark:bg-gray-900 text-white flex flex-col shadow-lg">
-      
+    <div
+      className="d-flex flex-column text-white"
+      style={{
+        width: "270px",
+        height: "100vh",
+        background: "linear-gradient(180deg, #1e293b, #0f172a)",
+        boxShadow: "0 20px 50px rgba(0,0,0,0.4)",
+      }}
+    >
       {/* Profile */}
-      <div className="flex flex-col items-center py-6 border-b border-gray-700">
+      <div className="d-flex flex-column align-items-center justify-content-center py-4 border-bottom border-secondary text-center">
         <img
           src="https://i.pravatar.cc/100"
           alt="profile"
-          className="w-14 h-14 rounded-full border-2 border-green-400"
+          className="rounded-circle"
+          style={{
+            width: "72px",
+            height: "72px",
+            border: "3px solid #22c55e",
+            objectFit: "cover",
+          }}
         />
-        <h2 className="mt-2 text-sm font-semibold">Admin</h2>
-        <p className="text-xs text-gray-400">Administrator</p>
+        <h6 className="mt-3 mb-0 fw-semibold">Admin</h6>
+        <small className="text-secondary">Administrator</small>
       </div>
 
       {/* Navigation */}
-      <ul className="space-y-1 flex-1 px-2 py-4">
+      <ul className="nav flex-column px-2 py-3 flex-grow-1">
 
         {/* Dashboard */}
-        <li>
+        <li className="nav-item mb-2">
           <NavLink
             to="/"
-            className={({ isActive }) =>
-              `p-2 rounded-lg flex items-center gap-3 transition shadow ${
-                isActive
-                  ? "bg-green-500"
-                  : "hover:bg-gray-700"
-              }`
-            }
+            className="nav-link d-flex align-items-center gap-2 text-white"
+            style={({ isActive }) => ({
+              ...linkBase,
+              background: isActive ? "rgba(34,197,94,0.15)" : "transparent",
+              borderLeft: isActive ? "4px solid #22c55e" : "4px solid transparent",
+            })}
+            onMouseEnter={(e) => hoverEffect(e, true)}
+            onMouseLeave={(e) => hoverEffect(e, false)}
           >
             <LayoutDashboard size={18} />
-            <span className="text-sm font-medium">Dashboard</span>
+            <span>Dashboard</span>
           </NavLink>
         </li>
 
-        {/* Courses */}
-        <li>
-          <div
-            onClick={() => toggleMenu("courses")}
-            className="p-2 rounded-lg flex items-center justify-between cursor-pointer hover:bg-gray-700 transition"
-          >
-            <div className="flex items-center gap-3">
-              <BookOpen size={18} />
-              <span className="text-sm">Courses</span>
+        {/* Menus */}
+        {[
+          {
+            key: "courses",
+            icon: <BookOpen size={18} />,
+            label: "Courses",
+            items: [
+              { to: "/courses", label: "All Courses" },
+              { to: "/add-course", label: "Add Course" },
+              { to: "/categories", label: "Categories" },
+            ],
+          },
+          {
+            key: "users",
+            icon: <Users size={18} />,
+            label: "Users",
+            items: [
+              { to: "/users", label: "All Users" },
+              { to: "/instructors", label: "Instructors" },
+              { to: "/students", label: "Students" },
+            ],
+          },
+          {
+            key: "content",
+            icon: <Layers size={18} />,
+            label: "Content",
+            items: [
+              { to: "/lessons", label: "Add Lecture" },
+              { to: "/lessonlist", label: "LectureList" },
+              { to: "/modules", label: "Modules" },
+              { to: "/resources", label: "Resources" },
+            ],
+          },
+          {
+            key: "settings",
+            icon: <Settings size={18} />,
+            label: "Settings",
+            items: [
+              { to: "/settings", label: "General" },
+              { to: "/payment", label: "Payment" },
+              { to: "/profile", label: "Profile" },
+            ],
+          },
+        ].map((menu) => (
+          <li className="nav-item mb-2" key={menu.key}>
+            {/* Parent */}
+            <div
+              onClick={() => toggleMenu(menu.key)}
+              style={linkBase}
+              className="d-flex justify-content-between align-items-center text-white"
+              onMouseEnter={(e) => hoverEffect(e, true)}
+              onMouseLeave={(e) => hoverEffect(e, false)}
+            >
+              <div className="d-flex align-items-center gap-2">
+                {menu.icon}
+                <span>{menu.label}</span>
+              </div>
+              <ChevronDown
+                size={16}
+                style={{
+                  transform:
+                    openMenu === menu.key ? "rotate(180deg)" : "rotate(0deg)",
+                  transition: "0.3s",
+                  color: openMenu === menu.key ? "#22c55e" : "#cbd5f5",
+                }}
+              />
             </div>
-            <ChevronDown
-              size={16}
-              className={`transition-transform ${
-                openMenu === "courses" ? "rotate-180" : ""
-              }`}
-            />
-          </div>
 
-          {openMenu === "courses" && (
-            <ul className="ml-7 mt-1 space-y-1 text-sm text-gray-300">
-              <li>
-                <NavLink to="/courses" className="hover:text-white transition">
-                  • All Courses
-                </NavLink>
-              </li>
-              <li>
-                <NavLink to="/add-course" className="hover:text-white transition">
-                  • Add Course
-                </NavLink>
-              </li>
-              <li>
-                <NavLink to="/categories" className="hover:text-white transition">
-                  • Categories
-                </NavLink>
-              </li>
-            </ul>
-          )}
-        </li>
-
-        {/* Users */}
-        <li>
-          <div
-            onClick={() => toggleMenu("users")}
-            className="p-2 rounded-lg flex items-center justify-between cursor-pointer hover:bg-gray-700 transition"
-          >
-            <div className="flex items-center gap-3">
-              <Users size={18} />
-              <span className="text-sm">Users</span>
+            {/* Dropdown */}
+            <div
+              style={{
+                maxHeight: openMenu === menu.key ? "400px" : "0px",
+                opacity: openMenu === menu.key ? 1 : 0,
+                overflow: "hidden",
+                transition: "all 0.35s ease",
+              }}
+            >
+              <ul
+                className="list-unstyled ms-3 mt-2 p-2 rounded"
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.05)",
+                }}
+              >
+                {menu.items.map((item, i) => (
+                  <li key={i}>
+                    <NavLink
+                      to={item.to}
+                      className="d-block text-decoration-none"
+                      style={({ isActive }) => ({
+                        padding: "8px 10px",
+                        borderRadius: "6px",
+                        transition: "0.2s",
+                        color: isActive ? "white" : "#9ca3af",
+                        background: isActive
+                          ? "rgba(34,197,94,0.15)"
+                          : "transparent",
+                      })}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = "translateX(4px)";
+                        if (!e.target.style.background.includes("34,197"))
+                          e.target.style.background =
+                            "rgba(255,255,255,0.05)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = "none";
+                        if (!e.target.style.background.includes("34,197"))
+                          e.target.style.background = "transparent";
+                      }}
+                    >
+                      {item.label}
+                    </NavLink>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <ChevronDown
-              size={16}
-              className={`transition-transform ${
-                openMenu === "users" ? "rotate-180" : ""
-              }`}
-            />
-          </div>
-
-          {openMenu === "users" && (
-            <ul className="ml-7 mt-1 space-y-1 text-sm text-gray-300">
-              <li>
-                <NavLink to="/users" className="hover:text-white transition">
-                  • All Users
-                </NavLink>
-              </li>
-              <li>
-                <NavLink to="/instructors" className="hover:text-white transition">
-                  • Instructors
-                </NavLink>
-              </li>
-              <li>
-                <NavLink to="/students" className="hover:text-white transition">
-                  • Students
-                </NavLink>
-              </li>
-            </ul>
-          )}
-        </li>
-
-        {/* Content */}
-        <li>
-          <div
-            onClick={() => toggleMenu("content")}
-            className="p-2 rounded-lg flex items-center justify-between cursor-pointer hover:bg-gray-700 transition"
-          >
-            <div className="flex items-center gap-3">
-              <Layers size={18} />
-              <span className="text-sm">Content</span>
-            </div>
-            <ChevronDown
-              size={16}
-              className={`transition-transform ${
-                openMenu === "content" ? "rotate-180" : ""
-              }`}
-            />
-          </div>
-
-          {openMenu === "content" && (
-            <ul className="ml-7 mt-1 space-y-1 text-sm text-gray-300">
-              <li>
-                <NavLink to="/lessons" className="hover:text-white transition">
-                  • Lessons
-                </NavLink>
-              </li>
-              <li>
-                <NavLink to="/modules" className="hover:text-white transition">
-                  • Modules
-                </NavLink>
-              </li>
-              <li>
-                <NavLink to="/resources" className="hover:text-white transition">
-                  • Resources
-                </NavLink>
-              </li>
-            </ul>
-          )}
-        </li>
+          </li>
+        ))}
 
         {/* Analytics */}
-        <li>
+        <li className="nav-item mt-2">
           <NavLink
             to="/analytics"
-            className="p-2 rounded-lg flex items-center gap-3 cursor-pointer hover:bg-gray-700 transition"
+            className="nav-link d-flex align-items-center gap-2 text-white"
+            style={linkBase}
+            onMouseEnter={(e) => hoverEffect(e, true)}
+            onMouseLeave={(e) => hoverEffect(e, false)}
           >
             <BarChart size={18} />
-            <span className="text-sm">Analytics</span>
+            <span>Analytics</span>
           </NavLink>
-        </li>
-
-        {/* Settings */}
-        <li>
-          <div
-            onClick={() => toggleMenu("settings")}
-            className="p-2 rounded-lg flex items-center justify-between cursor-pointer hover:bg-gray-700 transition"
-          >
-            <div className="flex items-center gap-3">
-              <Settings size={18} />
-              <span className="text-sm">Settings</span>
-            </div>
-            <ChevronDown
-              size={16}
-              className={`transition-transform ${
-                openMenu === "settings" ? "rotate-180" : ""
-              }`}
-            />
-          </div>
-
-          {openMenu === "settings" && (
-            <ul className="ml-7 mt-1 space-y-1 text-sm text-gray-300">
-              <li>
-                <NavLink to="/settings" className="hover:text-white transition">
-                  • General
-                </NavLink>
-              </li>
-              <li>
-                <NavLink to="/payment" className="hover:text-white transition">
-                  • Payment
-                </NavLink>
-              </li>
-              <li>
-                <NavLink to="/profile" className="hover:text-white transition">
-                  • Profile
-                </NavLink>
-              </li>
-            </ul>
-          )}
         </li>
       </ul>
 
       {/* Footer */}
-      <div className="text-xs text-gray-400 py-3 text-center border-t border-gray-700">
+      <div className="text-center text-secondary small py-3 border-top border-secondary">
         © 2026 EduTest Admin
       </div>
     </div>
