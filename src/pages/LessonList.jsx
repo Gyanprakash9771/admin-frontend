@@ -6,15 +6,12 @@ export default function LessonList() {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("");
 
-  
   useEffect(() => {
     API.get("/categories").then(res => setCategories(res.data));
   }, []);
 
-  
   useEffect(() => {
     let url = "/lessons";
-
     if (selectedCategory) {
       url += `?category=${selectedCategory}`;
     }
@@ -22,11 +19,51 @@ export default function LessonList() {
     API.get(url).then(res => setLessons(res.data));
   }, [selectedCategory]);
 
+  // ✅ DELETE FUNCTION
+  const handleDelete = async (id) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete?");
+    if (!confirmDelete) return;
+
+    try {
+      await API.delete(`/lessons/${id}`);
+      setLessons(prev => prev.filter(item => item._id !== id));
+    } catch (err) {
+      console.error(err);
+      alert("Delete failed");
+    }
+  };
+
+  // ✅ EDIT FUNCTION (simple prompt-based)
+  const handleEdit = async (lesson) => {
+    const newTitle = prompt("Enter new title", lesson.lectureTitle);
+    const newDuration = prompt("Enter new duration", lesson.duration);
+    console.log("EDIT ID:", lesson._id);
+
+    if (!newTitle || !newDuration) return;
+
+    try {
+      const res = await API.put(`/lessons/${lesson._id}`, {
+        
+        lectureTitle: newTitle,
+        duration: newDuration,
+      });
+
+      setLessons(prev =>
+        prev.map(item =>
+          item._id === lesson._id ? res.data : item
+        )
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Update failed");
+    }
+  };
+
   return (
     <div className="container mt-4">
       <h4 className="mb-4">Lessons</h4>
 
-      
+      {/* Filter */}
       <div className="mb-4">
         <label className="form-label">Filter by Category</label>
         <select
@@ -42,7 +79,7 @@ export default function LessonList() {
         </select>
       </div>
 
-      
+      {/* Lessons */}
       <div className="row">
         {lessons.map((lesson, i) => (
           <div key={i} className="col-md-6 mb-4">
@@ -69,6 +106,24 @@ export default function LessonList() {
                     style={{ borderRadius: "8px" }}
                   ></iframe>
                 )}
+
+                {/* ✅ ACTION BUTTONS */}
+                <div className="d-flex gap-2 mt-3">
+                  <button
+                    className="btn btn-sm btn-warning"
+                    onClick={() => handleEdit(lesson)}
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    className="btn btn-sm btn-danger"
+                    onClick={() => handleDelete(lesson._id)}
+                  >
+                    Delete
+                  </button>
+                </div>
+
               </div>
 
             </div>
@@ -76,7 +131,7 @@ export default function LessonList() {
         ))}
       </div>
 
-      
+      {/* Empty */}
       {lessons.length === 0 && (
         <div className="text-center text-muted mt-5">
           No lessons found

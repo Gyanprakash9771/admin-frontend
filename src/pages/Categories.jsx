@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import API from "../services/apiService";
+import API, { BASE_URL } from "../services/apiService";
 import toast from "react-hot-toast";
 
 export default function Categories() {
@@ -52,23 +52,15 @@ export default function Categories() {
     }
   };
 
-  // FILTER COURSES
+  // ✅ FIXED FILTER COURSES
   const filteredCourses = courses.filter((course) => {
     if (!selectedCat) return false;
-
-    return (
-      course.category === selectedCat ||
-      course.category ===
-        categories.find((c) => c._id === selectedCat)?.name
-    );
+    return course.category?._id === selectedCat;
   });
 
-  // COUNT COURSES PER CATEGORY
+  // ✅ FIXED COUNT
   const getCount = (catId) => {
-    return courses.filter((c) =>
-      c.category === catId ||
-      c.category === categories.find((x) => x._id === catId)?.name
-    ).length;
+    return courses.filter((c) => c.category?._id === catId).length;
   };
 
   return (
@@ -148,13 +140,13 @@ export default function Categories() {
 
             {!selectedCat && (
               <div className="text-center text-muted mt-5">
-                 Select a category to view courses
+                Select a category to view courses
               </div>
             )}
 
             {selectedCat && filteredCourses.length === 0 && (
               <div className="text-center text-muted mt-5">
-                 No courses in this category
+                No courses in this category
               </div>
             )}
 
@@ -165,7 +157,7 @@ export default function Categories() {
 
                     {course.image && (
                       <img
-                        src={`https://edutest-backend-0r41.onrender.com/uploads/${course.image}`}
+                        src={`${BASE_URL}/uploads/${course.image}`}
                         alt=""
                         className="w-100 rounded mb-2"
                         style={{ height: "140px", objectFit: "cover" }}

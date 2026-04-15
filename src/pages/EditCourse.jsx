@@ -1,119 +1,158 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import API from "../services/apiService";
+
 import toast from "react-hot-toast";
+import { Trash2, Pencil } from "lucide-react";
+import { label } from "framer-motion/client";
+
+import API, { BASE_URL } from "../services/apiService";
 
 export default function EditCourse() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({});
+  const [form, setForm] = useState({
+    title: "",
+    lessons: "",
+    category: "",
+    level: "",
+    previewVideo: "",
+    description: "",
+    instructor: "",
+    duration: "",
+    enrolled: "",
+    language: "",
+    price: "",
+    whatYouWillLearn: [""],
+    courseContent: []
+  });
+
   const [image, setImage] = useState(null);
+  const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [lessons, setLessons] = useState([]);
 
+  const [showModal, setShowModal] = useState(false);
+  const [editingIndex, setEditingIndex] = useState(null);
+
+  const [tempSection, setTempSection] = useState({
+    sectionTitle: "",
+    lectures: [{ lessonId: "" }],
+  });
+
+  // ✅ LOAD DATA
   useEffect(() => {
-    const fetchCourse = async () => {
-      const res = await API.get(`/courses`);
-      const course = res.data.find((c) => c._id === id);
+    API.get("/categories").then(res => setCategories(res.data));
+    API.get("/lessons").then(res => setLessons(res.data));
 
-      let safeLearn = [];
-      let safeContent = [];
+    API.get("/courses").then(res => {
+      const course = res.data.find(c => c._id === id);
+      if (!course) return;
 
-      try {
-        if (Array.isArray(course?.whatYouWillLearn)) {
-          safeLearn = course.whatYouWillLearn;
-        } else if (typeof course?.whatYouWillLearn === "string") {
-          safeLearn = course.whatYouWillLearn.split(",").map(i => i.trim());
+      console.log("IMAGE PATH 👉", course.image);
+
+      // ✅ YOUTUBE LINK FIX (ONLY ADDITION)
+      const convertToEmbed = (url) => {
+        if (!url) return "";
+
+        if (url.includes("watch?v=")) {
+          const id = url.split("watch?v=")[1].split("&")[0];
+          return `https://www.youtube.com/embed/${id}`;
         }
-      } catch {
-        safeLearn = [];
-      }
 
-      try {
-        if (Array.isArray(course?.courseContent)) {
-          safeContent = course.courseContent;
-        } else if (typeof course?.courseContent === "string") {
-          safeContent = JSON.parse(course.courseContent);
+        if (url.includes("youtu.be/")) {
+          const id = url.split("youtu.be/")[1].split("?")[0];
+          return `https://www.youtube.com/embed/${id}`;
         }
-      } catch {
-        safeContent = [];
-      }
+
+        return url;
+      };
 
       setForm({
         ...course,
-        description: course?.description || "",
-        instructor: course?.instructor || "",
-        duration: course?.duration || "",
-        enrolled: course?.enrolled || "",
-        language: course?.language || "",
-        price: course?.price || "",
-        whatYouWillLearn: safeLearn,
-        courseContent: safeContent,
+        previewVideo: convertToEmbed(course.previewVideo) || "", // ✅ UPDATED
+        category:
+          typeof course.category === "object"
+            ? course.category._id
+            : course.category,
+        whatYouWillLearn: course.whatYouWillLearn || [],
+        courseContent: course.courseContent || []
       });
-    };
-    fetchCourse();
+
+      if (course.image) {
+        setPreview(`${BASE_URL}/uploads/${course.image}`);
+      }
+    });
   }, [id]);
-
-  // 🔥 AUTO UPDATE LESSONS (NEW)
+  // ✅ AUTO LESSON COUNT
   useEffect(() => {
-    if (form.courseContent) {
-      const total = form.courseContent.reduce((acc, sec) => {
-        return acc + (sec.lectures?.length || 0);
-      }, 0);
-
-      setForm((prev) => ({ ...prev, lessons: total }));
-    }
+    const total = form.courseContent.reduce(
+      (acc, sec) => acc + (sec.lectures?.length || 0),
+      0
+    );
+    setForm(prev => ({ ...prev, lessons: total }));
   }, [form.courseContent]);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    if (name === "previewVideo") {
+      let embedUrl = value;
+
+      if (value.includes("watch?v=")) {
+        const videoId = value.split("watch?v=")[1].split("&")[0];
+        embedUrl = `https://www.youtube.com/embed/${videoId}`;
+      }
+
+      if (value.includes("youtu.be/")) {
+        const videoId = value.split("youtu.be/")[1].split("?")[0];
+        embedUrl = `https://www.youtube.com/embed/${videoId}`;
+      }
+
+      setForm({ ...form, previewVideo: embedUrl });
+      return;
+    }
+
+    setForm({ ...form, [name]: value });
   };
 
   const handleImage = (e) => {
-    setImage(e.target.files[0]);
+    const file = e.target.files[0];
+    setImage(file);
+    setPreview(URL.createObjectURL(file));
   };
 
-  // WHAT YOU WILL LEARN
-  const handleLearnChange = (index, value) => {
+  const handleLearnChange = (i, val) => {
     const updated = [...form.whatYouWillLearn];
-    updated[index] = value;
+    updated[i] = val;
     setForm({ ...form, whatYouWillLearn: updated });
   };
 
   const addLearn = () => {
     setForm({
       ...form,
-      whatYouWillLearn: [...(form.whatYouWillLearn || []), ""],
+      whatYouWillLearn: [...form.whatYouWillLearn, ""],
     });
   };
 
-  // COURSE CONTENT
-  const addSection = () => {
-    setForm({
-      ...form,
-      courseContent: [
-        ...(form.courseContent || []),
-        { sectionTitle: "", lectures: [{ title: "", duration: "" }] },
-      ],
-    });
-  };
-
-  const handleSectionTitle = (index, value) => {
-    const updated = [...form.courseContent];
-    updated[index].sectionTitle = value;
+  const deleteSection = (index) => {
+    const updated = form.courseContent.filter((_, i) => i !== index);
     setForm({ ...form, courseContent: updated });
   };
 
-  const handleLectureChange = (sIndex, lIndex, field, value) => {
+  const saveSection = () => {
     const updated = [...form.courseContent];
-    updated[sIndex].lectures[lIndex][field] = value;
-    setForm({ ...form, courseContent: updated });
-  };
 
-  const addLecture = (sIndex) => {
-    const updated = [...form.courseContent];
-    updated[sIndex].lectures.push({ title: "", duration: "" });
+    if (editingIndex !== null) {
+      updated[editingIndex] = tempSection;
+    } else {
+      updated.push(tempSection);
+    }
+
     setForm({ ...form, courseContent: updated });
+    setShowModal(false);
+    setEditingIndex(null);
   };
 
   const handleSubmit = async (e) => {
@@ -121,39 +160,41 @@ export default function EditCourse() {
     setLoading(true);
 
     const data = new FormData();
-    data.append("title", form.title);
-    data.append("category", form.category);
-    data.append("level", form.level);
 
-    data.append("description", form.description);
-    data.append("instructor", form.instructor);
-    data.append("duration", form.duration);
-    data.append("enrolled", form.enrolled);
-    data.append("language", form.language);
-    data.append("price", form.price);
+Object.keys(form).forEach((key) => {
+  if (key !== "whatYouWillLearn" && key !== "courseContent") {
 
-    data.append(
-      "whatYouWillLearn",
-      JSON.stringify(form.whatYouWillLearn || [])
-    );
+    // 🔥 FORCE HANDLE VIDEO (IMPORTANT FOR OLD DATA)
+    if (key === "previewVideo") {
+      let value = form.previewVideo || "";
 
-    data.append(
-      "courseContent",
-      JSON.stringify(form.courseContent || [])
-    );
+      if (value.includes("watch?v=")) {
+        const id = value.split("watch?v=")[1].split("&")[0];
+        value = `https://www.youtube.com/embed/${id}`;
+      }
 
-    if (image) {
-      data.append("image", image);
+      if (value.includes("youtu.be/")) {
+        const id = value.split("youtu.be/")[1].split("?")[0];
+        value = `https://www.youtube.com/embed/${id}`;
+      }
+
+      console.log("SAVING VIDEO 👉", value); // 👈 DEBUG
+
+      data.append("previewVideo", value);
+    } else {
+      data.append(key, form[key]);
     }
+  }
+});
+
+    data.append("whatYouWillLearn", JSON.stringify(form.whatYouWillLearn));
+    data.append("courseContent", JSON.stringify(form.courseContent));
+
+    if (image) data.append("image", image);
 
     try {
-      await API.put(`/courses/${id}`, data, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      toast.success("Course Updated Successfully ");
+      await API.put(`/courses/${id}`, data);
+      toast.success("Updated Successfully");
       navigate("/courses");
     } catch {
       toast.error("Update Failed ❌");
@@ -163,104 +204,326 @@ export default function EditCourse() {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-6 rounded shadow max-w-2xl">
-      <h2 className="text-xl font-semibold mb-4 text-black dark:text-white">
-        Edit Course
-      </h2>
+    <div className="container-fluid mt-4">
+      <div className="card shadow-sm p-4">
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+        <h4 className="mb-4">Edit Course</h4>
 
-        <input name="title" value={form.title || ""} onChange={handleChange} className="w-full p-2 border rounded" />
+        <form onSubmit={handleSubmit}>
 
-        {/* 🔥 FIXED LESSON FIELD */}
-        <input
-          name="lessons"
-          value={form.lessons || 0}
-          readOnly
-          className="w-full p-2 border rounded bg-gray-200 cursor-not-allowed"
-        />
-
-        <input name="category" value={form.category || ""} onChange={handleChange} className="w-full p-2 border rounded" />
-
-        <select name="level" value={form.level || ""} onChange={handleChange} className="w-full p-2 border rounded">
-          <option value="">Select Level</option>
-          <option value="Beginner">Beginner</option>
-          <option value="Intermediate">Intermediate</option>
-          <option value="Advanced">Advanced</option>
-        </select>
-
-        <input name="description" value={form.description || ""} onChange={handleChange} placeholder="Description" className="w-full p-2 border rounded" />
-        <input name="instructor" value={form.instructor || ""} onChange={handleChange} placeholder="Instructor" className="w-full p-2 border rounded" />
-        <input name="duration" value={form.duration || ""} onChange={handleChange} placeholder="Duration" className="w-full p-2 border rounded" />
-        <input name="enrolled" value={form.enrolled || ""} onChange={handleChange} placeholder="Enrolled" className="w-full p-2 border rounded" />
-        <input name="language" value={form.language || ""} onChange={handleChange} placeholder="Language" className="w-full p-2 border rounded" />
-        <input name="price" value={form.price || ""} onChange={handleChange} placeholder="Price" className="w-full p-2 border rounded" />
-
-        {/* WHAT YOU WILL LEARN */}
-        <div>
-          <h3>What You Will Learn</h3>
-          {(form.whatYouWillLearn || []).map((item, i) => (
-            <input
-              key={i}
-              value={item}
-              onChange={(e) => handleLearnChange(i, e.target.value)}
-              className="w-full p-2 border rounded mt-2"
-            />
-          ))}
-          <button type="button" onClick={addLearn}>+ Add</button>
-        </div>
-
-        {/* COURSE CONTENT */}
-        <div>
-          <h3>Course Content</h3>
-          {(form.courseContent || []).map((section, sIndex) => (
-            <div key={sIndex} className="border p-3 mt-3">
-              <input
-                placeholder="Section Title"
-                value={section.sectionTitle}
-                onChange={(e) => handleSectionTitle(sIndex, e.target.value)}
-                className="w-full p-2 border rounded"
-              />
-
-              {section.lectures.map((lec, lIndex) => (
-                <div key={lIndex} className="flex gap-2 mt-2">
-                  <input
-                    placeholder="Lecture Title"
-                    value={lec.title}
-                    onChange={(e) =>
-                      handleLectureChange(sIndex, lIndex, "title", e.target.value)
-                    }
-                    className="w-full p-2 border rounded"
-                  />
-                  <input
-                    placeholder="Duration"
-                    value={lec.duration}
-                    onChange={(e) =>
-                      handleLectureChange(sIndex, lIndex, "duration", e.target.value)
-                    }
-                    className="w-full p-2 border rounded"
-                  />
-                </div>
-              ))}
-
-              <button type="button" onClick={() => addLecture(sIndex)}>
-                + Add Lecture
-              </button>
+          {/* TITLE + LESSONS */}
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <label>Course Title</label>
+              <input name="title" value={form.title} onChange={handleChange} className="form-control" />
             </div>
-          ))}
-          <button type="button" onClick={addSection}>+ Add Section</button>
-        </div>
 
-        <input type="file" onChange={handleImage} />
+            <div className="col-md-6">
+              <label>Total Lessons</label>
+              <input value={form.lessons || 0} readOnly className="form-control bg-light" />
+            </div>
+          </div>
 
-        {form.image && (
-          <img src={`https://edutest-backend-0r41.onrender.com/uploads/${form.image}`} className="w-24 h-24" />
-        )}
+          {/* CATEGORY + LEVEL */}
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <label>Category</label>
+              <select name="category" value={form.category} onChange={handleChange} className="form-select">
+                <option value="">Select</option>
+                {categories.map(c => (
+                  <option key={c._id} value={c._id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
 
-        <button disabled={loading} className="bg-green-500 text-white px-4 py-2 rounded">
-          {loading ? "Updating..." : "Update Course"}
-        </button>
-      </form>
+            <div className="col-md-6">
+              <label>Level</label>
+              <select name="level" value={form.level} onChange={handleChange} className="form-select">
+                <option>Beginner</option>
+                <option>Intermediate</option>
+                <option>Advanced</option>
+              </select>
+            </div>
+          </div>
+
+          {/* DESCRIPTION */}
+          <div className="mb-3">
+            <label>Description</label>
+            <input name="description" value={form.description} onChange={handleChange} className="form-control" />
+          </div>
+
+          {/* DETAILS */}
+          <div className="row mb-3">
+            <div className="col-md-4">
+              <label>Instructor</label>
+              <input name="instructor" value={form.instructor} onChange={handleChange} className="form-control" />
+            </div>
+            <div className="col-md-4">
+              <label>Duration</label>
+              <input name="duration" value={form.duration} onChange={handleChange} className="form-control" />
+            </div>
+            <div className="col-md-4">
+              <label>Enrolled</label>
+              <input name="enrolled" value={form.enrolled} onChange={handleChange} className="form-control" />
+            </div>
+          </div>
+
+          <div className="row mb-4">
+            <div className="col-md-6">
+              <label>Language</label>
+              <input name="language" value={form.language} onChange={handleChange} className="form-control" />
+            </div>
+            <div className="col-md-6">
+              <label>Price</label>
+              <input name="price" value={form.price} onChange={handleChange} className="form-control" />
+            </div>
+          </div>
+
+          {/* WHAT YOU LEARN */}
+          <div className="mb-4">
+            <label>What You Will Learn</label>
+            {form.whatYouWillLearn.map((item, i) => (
+              <input key={i} value={item} onChange={(e) => handleLearnChange(i, e.target.value)} className="form-control mb-2" />
+            ))}
+            <button type="button" onClick={addLearn} className="btn btn-sm btn-outline-primary">+ Add</button>
+          </div>
+
+          {/* COURSE CONTENT */}
+          <div className="mb-4">
+            {form.courseContent.map((sec, i) => (
+              <div key={i} className="border rounded p-3 mb-3 bg-light">
+
+                <div className="d-flex justify-content-between align-items-center">
+                  <div>
+                    <b>{sec.sectionTitle}</b>
+                    <div className="text-muted small">
+                      {sec.lectures?.length || 0} lectures
+                    </div>
+                  </div>
+
+                  <div className="d-flex gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-light"
+                      onClick={() => {
+                        setTempSection({
+                          sectionTitle: sec.sectionTitle || "",
+                          lectures: sec.lectures.map(l => {
+                            const found = lessons.find(x => x._id === l.lessonId);
+
+                            return {
+                              lessonId: l.lessonId || "",
+                              title: found?.lectureTitle || l.title || "",
+                              duration: found?.duration || l.duration || "",
+                            };
+                          })
+                        });
+                        setEditingIndex(i);
+                        setShowModal(true);
+                      }}
+                    >
+                      <Pencil size={16} />
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-light text-danger"
+                      onClick={() => deleteSection(i)}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            ))}
+            <label>Course Content</label>
+            <button
+              type="button"
+              onClick={() => {
+                setTempSection({
+                  sectionTitle: "",
+                  lectures: [{ lessonId: "" }]
+                });
+                setEditingIndex(null);
+                setShowModal(true);
+              }}
+              className="btn btn-outline-success btn-sm"
+            >
+              + Add Section
+            </button>
+          </div>
+
+          {/* IMAGE */}
+          {/* IMAGE */}
+          {/* IMAGE UPLOAD */}
+<input
+  type="file"
+  onChange={handleImage}
+  className="form-control mb-3"
+/>
+
+{/* PREVIEW VIDEO INPUT */}
+<div className="mb-3 mt-3">
+  <label className="form-label">Preview Video</label>
+
+  <input
+    name="previewVideo"
+    value={
+      form.previewVideo
+        ? form.previewVideo.replace(
+            "https://www.youtube.com/embed/",
+            "https://www.youtube.com/watch?v="
+          )
+        : ""
+    }
+    onChange={handleChange}
+    className="form-control"
+    placeholder="Paste YouTube link"
+  />
+</div>
+
+{/* ✅ COMBINED PREVIEW (IMAGE + VIDEO SIDE BY SIDE) */}
+<div className="d-flex gap-3 mt-3">
+
+  {/* IMAGE PREVIEW */}
+  {preview && (
+    <img
+      src={preview}
+      style={{
+        width: "120px",
+        height: "80px",
+        objectFit: "cover",
+        borderRadius: "8px"
+      }}
+    />
+  )}
+
+  {/* VIDEO PREVIEW */}
+  {form.previewVideo && (
+    <iframe
+      src={form.previewVideo}
+      style={{
+        width: "120px",
+        height: "80px",
+        border: "none",
+        borderRadius: "8px"
+      }}
+      allow="autoplay; encrypted-media"
+      allowFullScreen
+    />
+  )}
+
+</div>
+
+          <button className="btn btn-success">
+            {loading ? "Updating..." : "Update"}
+          </button>
+
+        </form>
+      </div>
+
+      {/* MODAL */}
+      {showModal && (
+        <>
+          <div className="modal-backdrop fade show"></div>
+
+          <div className="modal fade show d-block">
+            <div className="modal-dialog modal-lg modal-dialog-centered">
+              <div className="modal-content border-0 shadow-lg rounded-4">
+
+                <div className="modal-header bg-light">
+                  <h5 className="fw-bold">Edit Section</h5>
+                  <button className="btn-close" onClick={() => setShowModal(false)}></button>
+                </div>
+
+                <div className="modal-body">
+
+                  <input
+                    className="form-control mb-3"
+                    placeholder="Section Title"
+                    value={tempSection.sectionTitle}
+                    onChange={(e) =>
+                      setTempSection({
+                        ...tempSection,
+                        sectionTitle: e.target.value
+                      })
+                    }
+                  />
+
+                  {tempSection.lectures.map((lec, i) => (
+                    <div key={i}>
+
+                      <select
+                        className="form-select mb-1"
+                        value={lec.lessonId?.toString() || ""}
+                        onChange={(e) => {
+                          const selected = lessons.find(l => l._id === e.target.value);
+                          if (!selected) return;
+
+                          const updated = [...tempSection.lectures];
+                          updated[i] = {
+                            lessonId: selected._id,
+                            title: selected.lectureTitle,
+                            duration: selected.duration,
+                          };
+
+                          setTempSection({
+                            ...tempSection,
+                            lectures: updated
+                          });
+                        }}
+                      >
+                        <option value="">Select Lecture</option>
+
+                        {lessons.map(l => (
+                          <option key={l._id} value={l._id}>
+                            {l.lectureTitle}
+                          </option>
+                        ))}
+                      </select>
+
+                      {/* ✅ ADD THIS (lecture preview) */}
+                      {lec.title && (
+                        <div className="d-flex justify-content-between small text-muted mb-2">
+                          <span>📘 {lec.title}</span>
+                          <span>⏱ {lec.duration}</span>
+                        </div>
+                      )}
+
+                    </div>
+                  ))}
+
+                  <button
+                    onClick={() =>
+                      setTempSection({
+                        ...tempSection,
+                        lectures: [...tempSection.lectures, { lessonId: "" }]
+                      })
+                    }
+                    className="btn btn-primary btn-sm mt-2"
+                  >
+                    + Add Lecture
+                  </button>
+
+                </div>
+
+                <div className="modal-footer">
+                  <button className="btn btn-secondary" onClick={() => setShowModal(false)}>
+                    Cancel
+                  </button>
+
+                  <button className="btn btn-success" onClick={saveSection}>
+                    Save Section
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
     </div>
   );
 }

@@ -12,6 +12,11 @@ import {
 
 export default function Sidebar() {
   const [openMenu, setOpenMenu] = useState(null);
+  const [openSubMenu, setOpenSubMenu] = useState(null);
+
+  const toggleSubMenu = (label) => {
+    setOpenSubMenu(openSubMenu === label ? null : label);
+  };
 
   const toggleMenu = (menu) => {
     setOpenMenu(openMenu === menu ? null : menu);
@@ -37,6 +42,7 @@ export default function Sidebar() {
       style={{
         width: "270px",
         height: "100vh",
+        overflowY: "auto",
         background: "linear-gradient(180deg, #1e293b, #0f172a)",
         boxShadow: "0 20px 50px rgba(0,0,0,0.4)",
       }}
@@ -60,7 +66,6 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <ul className="nav flex-column px-2 py-3 flex-grow-1">
-
         {/* Dashboard */}
         <li className="nav-item mb-2">
           <NavLink
@@ -69,7 +74,9 @@ export default function Sidebar() {
             style={({ isActive }) => ({
               ...linkBase,
               background: isActive ? "rgba(34,197,94,0.15)" : "transparent",
-              borderLeft: isActive ? "4px solid #22c55e" : "4px solid transparent",
+              borderLeft: isActive
+                ? "4px solid #22c55e"
+                : "4px solid transparent",
             })}
             onMouseEnter={(e) => hoverEffect(e, true)}
             onMouseLeave={(e) => hoverEffect(e, false)}
@@ -106,8 +113,13 @@ export default function Sidebar() {
             icon: <Layers size={18} />,
             label: "Content",
             items: [
-              { to: "/lessons", label: "Add Lecture" },
-              { to: "/lessonlist", label: "LectureList" },
+              {
+                label: "Lecture",
+                subItems: [
+                  { to: "/lessons", label: "Add Lecture" },
+                  { to: "/lessonlist", label: "Lecture List" },
+                ],
+              },
               { to: "/modules", label: "Modules" },
               { to: "/resources", label: "Resources" },
             ],
@@ -140,9 +152,12 @@ export default function Sidebar() {
                 size={16}
                 style={{
                   transform:
-                    openMenu === menu.key ? "rotate(180deg)" : "rotate(0deg)",
+                    openMenu === menu.key
+                      ? "rotate(180deg)"
+                      : "rotate(0deg)",
                   transition: "0.3s",
-                  color: openMenu === menu.key ? "#22c55e" : "#cbd5f5",
+                  color:
+                    openMenu === menu.key ? "#22c55e" : "#cbd5f5",
                 }}
               />
             </div>
@@ -165,32 +180,86 @@ export default function Sidebar() {
               >
                 {menu.items.map((item, i) => (
                   <li key={i}>
-                    <NavLink
-                      to={item.to}
-                      className="d-block text-decoration-none"
-                      style={({ isActive }) => ({
-                        padding: "8px 10px",
-                        borderRadius: "6px",
-                        transition: "0.2s",
-                        color: isActive ? "white" : "#9ca3af",
-                        background: isActive
-                          ? "rgba(34,197,94,0.15)"
-                          : "transparent",
-                      })}
-                      onMouseEnter={(e) => {
-                        e.target.style.transform = "translateX(4px)";
-                        if (!e.target.style.background.includes("34,197"))
-                          e.target.style.background =
-                            "rgba(255,255,255,0.05)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.transform = "none";
-                        if (!e.target.style.background.includes("34,197"))
-                          e.target.style.background = "transparent";
-                      }}
-                    >
-                      {item.label}
-                    </NavLink>
+                    {/* NORMAL LINK */}
+                    {!item.subItems ? (
+                      <NavLink
+                        to={item.to}
+                        className="d-block text-decoration-none"
+                        style={({ isActive }) => ({
+                          padding: "8px 10px",
+                          borderRadius: "6px",
+                          transition: "0.2s",
+                          color: isActive ? "white" : "#9ca3af",
+                          background: isActive
+                            ? "rgba(34,197,94,0.15)"
+                            : "transparent",
+                        })}
+                      >
+                        {item.label}
+                      </NavLink>
+                    ) : (
+                      <>
+                        {/* SUBMENU PARENT */}
+                        <div
+                          onClick={() => toggleSubMenu(item.label)}
+                          className="d-flex justify-content-between align-items-center"
+                          style={{
+                            padding: "8px 10px",
+                            borderRadius: "6px",
+                            cursor: "pointer",
+                            color: "#9ca3af",
+                          }}
+                        >
+                          <span>{item.label}</span>
+                          <ChevronDown
+                            size={14}
+                            style={{
+                              transform:
+                                openSubMenu === item.label
+                                  ? "rotate(180deg)"
+                                  : "rotate(0deg)",
+                              transition: "0.3s",
+                            }}
+                          />
+                        </div>
+
+                        {/* SUBMENU ITEMS */}
+                        <div
+                          style={{
+                            maxHeight:
+                              openSubMenu === item.label
+                                ? "200px"
+                                : "0px",
+                            overflow: "hidden",
+                            transition: "0.3s",
+                          }}
+                        >
+                          <ul className="list-unstyled ms-3">
+                            {item.subItems.map((sub, j) => (
+                              <li key={j}>
+                                <NavLink
+                                  to={sub.to}
+                                  className="d-block text-decoration-none"
+                                  style={({ isActive }) => ({
+                                    padding: "6px 10px",
+                                    borderRadius: "6px",
+                                    fontSize: "14px",
+                                    color: isActive
+                                      ? "white"
+                                      : "#9ca3af",
+                                    background: isActive
+                                      ? "rgba(34,197,94,0.15)"
+                                      : "transparent",
+                                  })}
+                                >
+                                  {sub.label}
+                                </NavLink>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </>
+                    )}
                   </li>
                 ))}
               </ul>

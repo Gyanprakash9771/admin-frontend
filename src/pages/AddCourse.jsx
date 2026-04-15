@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import API from "../services/apiService";
 import toast from "react-hot-toast";
+import { Trash2, Pencil } from "lucide-react";
 
 export default function AddCourse() {
   const [form, setForm] = useState({
     title: "",
     lessons: "",
     category: "",
+    previewVideo: "",
     level: "",
     description: "",
     instructor: "",
@@ -24,19 +26,35 @@ export default function AddCourse() {
   const [categories, setCategories] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [lessons, setLessons] = useState([]);
+  const [editingIndex, setEditingIndex] = useState(null);
   useEffect(() => {
-  API.get("/lessons")
-    .then(res => setLessons(res.data))
-    .catch(() => toast.error("Failed to load lessons"));
-}, []);
+    API.get("/lessons")
+      .then(res => setLessons(res.data))
+      .catch(() => toast.error("Failed to load lessons"));
+  }, []);
   const [tempSection, setTempSection] = useState({
     sectionTitle: "",
     lectures: [{ title: "", duration: "" }],
   });
-  
+
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    // 🎯 AUTO-CONVERT YOUTUBE LINK
+    if (name === "previewVideo") {
+      let embedUrl = value;
+
+      if (value.includes("watch?v=")) {
+        const videoId = value.split("watch?v=")[1].split("&")[0];
+        embedUrl = `https://www.youtube.com/embed/${videoId}`;
+      }
+
+      setForm({ ...form, previewVideo: embedUrl });
+      return;
+    }
+
+    setForm({ ...form, [name]: value });
   };
 
   const handleImage = (e) => {
@@ -113,10 +131,25 @@ export default function AddCourse() {
   };
 
   const saveSection = () => {
-    setForm({
-      ...form,
-      courseContent: [...form.courseContent, tempSection],
-    });
+    if (editingIndex !== null) {
+      // ✅ UPDATE EXISTING SECTION
+      const updated = [...form.courseContent];
+      updated[editingIndex] = tempSection;
+
+      setForm({
+        ...form,
+        courseContent: updated,
+      });
+
+      setEditingIndex(null); // reset
+    } else {
+      // ✅ ADD NEW SECTION
+      setForm({
+        ...form,
+        courseContent: [...form.courseContent, tempSection],
+      });
+    }
+
     setShowModal(false);
   };
 
@@ -167,6 +200,10 @@ export default function AddCourse() {
       setLoading(false);
     }
   };
+  const deleteSection = (index) => {
+    const updated = form.courseContent.filter((_, i) => i !== index);
+    setForm({ ...form, courseContent: updated });
+  };
 
   return (
     <div className="container-fluid mt-4">
@@ -177,7 +214,7 @@ export default function AddCourse() {
 
         <form onSubmit={handleSubmit}>
 
-          
+
           <div className="row mb-3">
             <div className="col-md-6">
               <label className="form-label">Course Title</label>
@@ -224,7 +261,7 @@ export default function AddCourse() {
             </div>
           </div>
 
-          
+
           <div className="row mb-3">
             <div className="col-md-12">
               <label className="form-label">Description</label>
@@ -261,7 +298,7 @@ export default function AddCourse() {
             </div>
           </div>
 
-          
+
           <div className="mb-4">
             <label className="form-label">What You Will Learn</label>
 
@@ -279,60 +316,130 @@ export default function AddCourse() {
             </button>
           </div>
 
-          
+
           <div className="mb-4">
-  <label className="form-label">Course Content</label>
+            <label className="form-label">Course Content</label>
 
-  {form.courseContent.map((section, sIndex) => (
-    <div key={sIndex} className="border rounded p-3 mb-3 bg-light">
+            {form.courseContent.map((section, sIndex) => (
+              <div key={sIndex} className="border rounded p-3 mb-3 bg-light">
 
-      {/* SECTION HEADER */}
-      <div className="d-flex justify-content-between align-items-center mb-2">
-        <h6 className="mb-0 fw-semibold">{section.sectionTitle}</h6>
+                {/* SECTION HEADER */}
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <div>
+                    <h6 className="mb-0 fw-bold">{section.sectionTitle}</h6>
+                    <small className="text-muted">
+                      {section.lectures?.length || 0} lectures
+                    </small>
+                  </div>
 
-        {/* ✏️ EDIT BUTTON */}
-        <button
-          type="button"
-          className="btn btn-sm btn-outline-primary"
-          onClick={() => {
-            setTempSection(section);
-            setShowModal(true);
+                  <div className="d-flex align-items-center gap-2">
 
-            // optional: store index for update
-            setEditingIndex(sIndex);
-          }}
-        >
-          Edit
-        </button>
-      </div>
+                    {/* EDIT BUTTON */}
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-light rounded-circle d-flex align-items-center justify-content-center"
+                      style={{ width: "36px", height: "36px" }}
+                      onClick={() => {
+                        setTempSection({
+                          ...section,
+                          lectures: [...section.lectures],
+                        });
+                        setShowModal(true);
+                        setEditingIndex(sIndex);
+                      }}
+                    >
+                      <Pencil size={16} />
+                    </button>
 
-      {/* LECTURES LIST */}
-      {section.lectures.map((lec, lIndex) => (
-        <div key={lIndex} className="d-flex justify-content-between border rounded px-2 py-1 mb-2 bg-white">
+                    {/* DELETE BUTTON */}
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-light rounded-circle d-flex align-items-center justify-content-center"
+                      style={{
+                        width: "36px",
+                        height: "36px",
+                        color: "#dc3545",
+                        transition: "all 0.2s ease"
+                      }}
+                      onClick={() => deleteSection(sIndex)}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "#dc3545";
+                        e.currentTarget.style.color = "#fff";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "";
+                        e.currentTarget.style.color = "#dc3545";
+                      }}
+                    >
+                      <Trash2 size={16} />
+                    </button>
 
-          <span>{lec.title}</span>
-          <small className="text-muted">{lec.duration}</small>
+                  </div>
+                </div>
+                {/* LECTURES LIST */}
+                {section.lectures.map((lec, lIndex) => (
+                  <div key={lIndex} className="d-flex justify-content-between border rounded px-2 py-1 mb-2 bg-white">
 
-        </div>
-      ))}
+                    <span>{lec.title}</span>
+                    <small className="text-muted">{lec.duration}</small>
 
-    </div>
-  ))}
+                  </div>
+                ))}
 
-  <button type="button" onClick={addSection} className="btn btn-outline-success btn-sm">
-    + Add Section
-  </button>
-</div>
+              </div>
+            ))}
 
-          
-          <div className="mb-4">
-            <label className="form-label">Course Image</label>
-            <input type="file" onChange={handleImage} className="form-control" />
-
-            {preview && (
-              <img src={preview} className="mt-3 rounded" style={{ width: "120px" }} />
-            )}
+            <button type="button" onClick={addSection} className="btn btn-outline-success btn-sm">
+              + Add Section
+            </button>
           </div>
+
+
+          <div className="row mb-4">
+
+  {/* IMAGE */}
+  <div className="col-md-6">
+    <label className="form-label">Course Image</label>
+    <input type="file" onChange={handleImage} className="form-control" />
+
+    {preview && (
+      <img
+        src={preview}
+        className="mt-3 rounded"
+        style={{ width: "120px", height: "80px", objectFit: "cover" }}
+      />
+    )}
+  </div>
+
+  {/* VIDEO */}
+  <div className="col-md-6">
+    <label className="form-label">Preview Video URL</label>
+    <input
+      name="previewVideo"
+      value={form.previewVideo}
+      onChange={handleChange}
+      className="form-control"
+      placeholder="Paste YouTube link"
+    />
+
+    {form.previewVideo && (
+      <div className="mt-3">
+        <iframe
+          src={form.previewVideo}
+          style={{
+            width: "120px",
+            height: "80px",
+            borderRadius: "8px",
+            border: "none"
+          }}
+          allow="autoplay; encrypted-media"
+          allowFullScreen
+        />
+      </div>
+    )}
+  </div>
+
+</div>
 
           {/* SUBMIT */}
           <button disabled={loading} className="btn btn-success px-4">
@@ -343,19 +450,18 @@ export default function AddCourse() {
       </div>
       {showModal && (
         <>
-          
           <div className="modal-backdrop fade show"></div>
 
           <div className="modal fade show d-block">
             <div className="modal-dialog modal-lg modal-dialog-centered">
-              <div className="modal-content shadow-lg border-0 rounded-4 overflow-hidden">
+              <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
 
-                
-                <div className="modal-header border-0 pb-2 pt-3 px-4 bg-white">
+                {/* HEADER */}
+                <div className="modal-header bg-light border-0 px-4 py-3">
                   <div>
-                    <h5 className="fw-bold mb-0"> Add New Section</h5>
+                    <h5 className="fw-bold mb-0">📚 Add Section</h5>
                     <small className="text-muted">
-                      Organize your course content clearly
+                      Create structured learning content
                     </small>
                   </div>
                   <button
@@ -364,17 +470,17 @@ export default function AddCourse() {
                   ></button>
                 </div>
 
-                
+                {/* BODY */}
                 <div className="modal-body px-4 py-3">
 
-                  
+                  {/* SECTION TITLE */}
                   <div className="mb-4">
-                    <label className="form-label fw-semibold text-dark">
+                    <label className="form-label fw-semibold">
                       Section Title
                     </label>
                     <input
                       placeholder="e.g. Introduction to React"
-                      className="form-control form-control-lg rounded-3 shadow-sm"
+                      className="form-control form-control-lg rounded-3"
                       value={tempSection.sectionTitle}
                       onChange={(e) =>
                         setTempSection({
@@ -385,15 +491,14 @@ export default function AddCourse() {
                     />
                   </div>
 
-                  
+                  {/* LECTURES */}
                   <div>
                     <div className="d-flex justify-content-between align-items-center mb-3">
-                      <label className="form-label fw-semibold mb-0 text-dark">
-                        Lectures
-                      </label>
+                      <h6 className="fw-semibold mb-0">Lectures</h6>
+
                       <button
                         onClick={addModalLecture}
-                        className="btn btn-sm btn-outline-primary rounded-pill px-3"
+                        className="btn btn-primary btn-sm rounded-pill px-3"
                       >
                         + Add Lecture
                       </button>
@@ -402,72 +507,96 @@ export default function AddCourse() {
                     {tempSection.lectures.map((lec, i) => (
                       <div
                         key={i}
-                        className="border rounded-4 p-3 mb-3 bg-white shadow-sm position-relative"
+                        className="border rounded-4 p-3 mb-3 bg-white shadow-sm"
                       >
+                        <div className="d-flex justify-content-between align-items-center mb-2">
 
-                        
-                        {tempSection.lectures.length > 1 && (
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-danger position-absolute top-0 end-0 m-2 rounded-circle shadow-sm"
-                            onClick={() => {
-                              const updated = tempSection.lectures.filter((_, index) => index !== i);
-                              setTempSection({ ...tempSection, lectures: updated });
-                            }}
-                          >
-                            ✕
-                          </button>
-                        )}
+                          <span className="fw-semibold text-muted">
+                            Lecture {i + 1}
+                          </span>
 
-                        <div className="row g-3">
-                          <div className="col-md-7">
-                            <input
-                              placeholder="Lecture Title"
-                              className="form-control shadow-sm"
-                              value={lec.title}
-                              onChange={(e) =>
-                                handleModalLectureChange(i, "title", e.target.value)
-                              }
-                            />
-                          </div>
-
-                          <div className="col-md-5">
-                            <select
-  className="form-select shadow-sm"
-  value={lec.title}
-  onChange={(e) => {
-    const selected = lessons.find(l => l._id === e.target.value);
-
-    handleModalLectureChange(i, "title", selected?.lectureTitle || "");
-    handleModalLectureChange(i, "duration", selected?.duration || "");
-  }}
->
-  <option value="">Select Lecture</option>
-
-  {lessons.map((l) => (
-    <option key={l._id} value={l._id}>
-      {l.lectureTitle}
-    </option>
-  ))}
-</select>
-                          </div>
+                          {tempSection.lectures.length > 1 && (
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-light rounded-circle d-flex align-items-center justify-content-center"
+                              style={{
+                                width: "32px",
+                                height: "32px",
+                                color: "#dc3545",
+                                transition: "all 0.2s ease"
+                              }}
+                              onClick={() => {
+                                const updated = tempSection.lectures.filter((_, index) => index !== i);
+                                setTempSection({ ...tempSection, lectures: updated });
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = "#dc3545";
+                                e.currentTarget.style.color = "#fff";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = "";
+                                e.currentTarget.style.color = "#dc3545";
+                              }}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
                         </div>
+
+                        {/* SINGLE DROPDOWN (FIXED UX) */}
+                        <select
+                          className="form-select mb-2"
+                          value={lec.lessonId || ""}
+                          onChange={(e) => {
+                            const selected = lessons.find(l => l._id === e.target.value);
+
+                            if (!selected) return; // 🔥 IMPORTANT FIX
+
+                            const updated = [...tempSection.lectures];
+
+                            updated[i] = {
+                              lessonId: selected._id,
+                            };
+
+                            setTempSection({
+                              ...tempSection,
+                              lectures: updated,
+                            });
+                          }}
+                        >
+                          <option value="">Select Lecture</option>
+
+                          {lessons.map((l) => (
+                            <option key={l._id} value={l._id}>
+                              {l.lectureTitle}
+                            </option>
+                          ))}
+                        </select>
+
+                        {/* INFO DISPLAY */}
+                        {lec.title && (
+                          <div className="d-flex justify-content-between small text-muted">
+                            <span>📘 {lec.title}</span>
+                            <span>⏱ {lec.duration}</span>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
 
                 </div>
 
-                
-                <div className="modal-footer border-0 px-4 pb-3 pt-2 bg-white">
+                {/* FOOTER */}
+                <div className="modal-footer border-0 px-4 py-3 bg-light">
                   <button
-                    className="btn btn-light px-4 rounded-pill"
+                    className="btn btn-outline-secondary px-4 rounded-pill"
                     onClick={() => setShowModal(false)}
                   >
                     Cancel
                   </button>
+
                   <button
-                    className="btn btn-success px-4 rounded-pill shadow-sm"
+                    className="btn btn-success px-4 rounded-pill"
                     onClick={saveSection}
                   >
                     Save Section

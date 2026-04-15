@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import API from "../services/apiService";
+import API, { BASE_URL } from "../services/apiService";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
@@ -42,7 +42,7 @@ export default function Courses() {
   const filteredCourses = courses.filter((c) => {
     return (
       c.title.toLowerCase().includes(search.toLowerCase()) &&
-      (category === "All" || c.category === category)
+      (category === "All" || c.category?.name === category)
     );
   });
 
@@ -55,16 +55,19 @@ export default function Courses() {
   );
 
   // Get unique categories
-  const categories = ["All", ...new Set(courses.map(c => c.category))];
+ const categories = [
+  "All",
+  ...new Set(courses.map(c => c.category?.name).filter(Boolean))
+];
 
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
 
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
-        
+
         <h2 className="text-xl font-bold text-black dark:text-white">
-           Courses
+          Courses
         </h2>
 
         <div className="flex gap-2 flex-wrap">
@@ -120,19 +123,20 @@ export default function Courses() {
                 className="bg-gray-50 dark:bg-gray-700 rounded-lg shadow hover:scale-[1.01] transition"
               >
                 <td className="p-2">
-  <img
-    src={
-      course.image?.startsWith("http")
-        ? course.image
-        : `https://edutest-backend-0r41.onrender.com/uploads/${course.image}`
-    }
-    alt="course"
-    className="w-12 h-12 rounded object-cover"
-    onError={(e) => {
-      e.target.src = "https://via.placeholder.com/100";
-    }}
-  />
-</td>
+                  <img
+                    src={
+                      course.image?.startsWith("http")
+                        ? course.image
+                        : `${BASE_URL}/uploads/${course.image}`
+                    }
+                    alt="course"
+                    className="w-12 h-12 rounded object-cover"
+                    onError={(e) => {
+                      console.log("COURSE IMAGE:", course.image);
+                      e.target.src = "https://via.placeholder.com/100";
+                    }}
+                  />
+                </td>
 
                 <td className="p-2 font-medium text-black dark:text-white">
                   {course.title}
@@ -143,7 +147,9 @@ export default function Courses() {
                 </td>
 
                 <td className="p-2 text-gray-600 dark:text-gray-300">
-                  {course.category}
+                  {typeof course.category === "object"
+  ? course.category?.name
+  : course.category}
                 </td>
 
                 <td className="p-2 text-purple-600 font-semibold">
@@ -177,11 +183,10 @@ export default function Courses() {
           <button
             key={i}
             onClick={() => setPage(i + 1)}
-            className={`px-3 py-1 rounded ${
-              page === i + 1
+            className={`px-3 py-1 rounded ${page === i + 1
                 ? "bg-green-500 text-white"
                 : "bg-gray-200"
-            }`}
+              }`}
           >
             {i + 1}
           </button>
