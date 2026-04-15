@@ -17,12 +17,32 @@ export default function AddLecture() {
     API.get("/categories").then(res => setCategories(res.data));
   }, []);
 
-  const convertToEmbed = (url) => {
-    const regExp = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/;
-    const match = url.match(regExp);
-    return match ? `https://www.youtube.com/embed/${match[1]}` : url;
-  };
+ const convertToEmbed = (url) => {
+  if (!url) return "";
 
+  try {
+    // watch?v=
+    if (url.includes("watch?v=")) {
+      const id = url.split("watch?v=")[1].split("&")[0];
+      return `https://www.youtube.com/embed/${id}`;
+    }
+
+    // youtu.be/
+    if (url.includes("youtu.be/")) {
+      const id = url.split("youtu.be/")[1].split("?")[0];
+      return `https://www.youtube.com/embed/${id}`;
+    }
+
+    // already embed
+    if (url.includes("embed")) {
+      return url;
+    }
+
+    return url;
+  } catch {
+    return url;
+  }
+};
   const handleSubmit = async () => {
     if (!selectedCategory) {
       return toast.error("Select category");
