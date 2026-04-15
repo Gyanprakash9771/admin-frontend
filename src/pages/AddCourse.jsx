@@ -383,14 +383,7 @@ data.append(
           <div className="row mb-3">
             <div className="col-md-12">
               <label className="form-label">Description</label>
-              <textarea
-  name="description"
-  value={form.description}
-  onChange={handleChange}
-  className="form-control"
-  rows="5"
-  style={{ resize: "none" }}
-/>
+              <input name="description" value={form.description} onChange={handleChange} className="form-control" />
             </div>
           </div>
 
