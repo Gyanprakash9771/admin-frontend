@@ -1,18 +1,17 @@
 import axios from "axios";
 
+// ✅ ADD THIS
+export const BASE_URL = "https://edutest-backend-0r41.onrender.com";
+
 const API = axios.create({
-  baseURL: "https://edutest-backend-0r41.onrender.com/api",
-  // baseURL:"http://localhost:5000/api",
+  baseURL: `${BASE_URL}/api`,
 });
 
-// ✅ ADD THIS (auto attach token)
 API.interceptors.request.use((req) => {
   const token = localStorage.getItem("token");
-
   if (token) {
     req.headers.authorization = token;
   }
-
   return req;
 });
 
