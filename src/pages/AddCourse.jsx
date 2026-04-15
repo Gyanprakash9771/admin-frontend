@@ -33,9 +33,9 @@ export default function AddCourse() {
       .catch(() => toast.error("Failed to load lessons"));
   }, []);
   const [tempSection, setTempSection] = useState({
-    sectionTitle: "",
-    lectures: [{ title: "", duration: "" }],
-  });
+  sectionTitle: "",
+  lectures: [{ lessonId: "", title: "", duration: "" }],
+});
 
 
   const handleChange = (e) => {
@@ -49,6 +49,10 @@ export default function AddCourse() {
         const videoId = value.split("watch?v=")[1].split("&")[0];
         embedUrl = `https://www.youtube.com/embed/${videoId}`;
       }
+    if (value.includes("youtu.be/")) {
+  const videoId = value.split("youtu.be/")[1]?.split("?")[0];
+  embedUrl = `https://www.youtube.com/embed/${videoId}`;
+}
 
       setForm({ ...form, previewVideo: embedUrl });
       return;
@@ -93,9 +97,9 @@ export default function AddCourse() {
 
   const addSection = () => {
     setTempSection({
-      sectionTitle: "",
-      lectures: [{ title: "", duration: "" }],
-    });
+  sectionTitle: "",
+  lectures: [{ lessonId: "", title: "", duration: "" }],
+});
     setShowModal(true);
   };
 
@@ -112,94 +116,208 @@ export default function AddCourse() {
   };
 
   const addLecture = (sIndex) => {
-    const updated = [...form.courseContent];
-    updated[sIndex].lectures.push({ title: "", duration: "" });
-    setForm({ ...form, courseContent: updated });
-  };
+  setForm((prev) => {
+    const updated = [...prev.courseContent];
+
+    // safety check
+    if (!updated[sIndex]) return prev;
+
+    updated[sIndex] = {
+      ...updated[sIndex],
+      lectures: [
+        ...(updated[sIndex].lectures || []),
+        { lessonId: "", title: "", duration: "" }
+      ],
+    };
+
+    return {
+      ...prev,
+      courseContent: updated,
+    };
+  });
+};
 
   const handleModalLectureChange = (index, field, value) => {
-    const updated = [...tempSection.lectures];
-    updated[index][field] = value;
-    setTempSection({ ...tempSection, lectures: updated });
-  };
+  const updated = [...tempSection.lectures];
+  updated[index][field] = value;
 
-  const addModalLecture = () => {
-    setTempSection({
-      ...tempSection,
-      lectures: [...tempSection.lectures, { title: "", duration: "" }],
+  setTempSection({
+    ...tempSection,
+    lectures: updated,
+  });
+};
+
+const addModalLecture = () => {
+  setTempSection({
+    ...tempSection,
+    lectures: [
+      ...tempSection.lectures,
+      { lessonId: "", title: "", duration: "" }
+    ],
+  });
+};
+
+const saveSection = () => {
+  // 🔥 SECTION TITLE VALIDATION
+  if (!tempSection.sectionTitle.trim()) {
+    toast.error("Section title required");
+    return;
+  }
+
+  // 🔥 EMPTY LECTURE CHECK
+  const hasEmptyLecture = tempSection.lectures.some(
+    (lec) => !lec.lessonId
+  );
+
+  if (hasEmptyLecture) {
+    toast.error("Please select all lectures");
+    return;
+  }
+
+  // 🔥 DUPLICATE LECTURE CHECK
+  const lectureIds = tempSection.lectures.map((lec) => lec.lessonId);
+  const hasDuplicates = new Set(lectureIds).size !== lectureIds.length;
+
+  if (hasDuplicates) {
+    toast.error("Duplicate lectures not allowed");
+    return;
+  }
+
+  // 🔥 UPDATE OR ADD
+  if (editingIndex !== null) {
+    const updated = [...form.courseContent];
+    updated[editingIndex] = {
+  sectionTitle: tempSection.sectionTitle,
+  lectures: tempSection.lectures.map((lec) => ({
+    lessonId: lec.lessonId,
+    title: lec.title,
+    duration: lec.duration,
+  })),
+};
+
+    setForm({
+      ...form,
+      courseContent: updated,
     });
-  };
 
-  const saveSection = () => {
-    if (editingIndex !== null) {
-      // ✅ UPDATE EXISTING SECTION
-      const updated = [...form.courseContent];
-      updated[editingIndex] = tempSection;
+    setEditingIndex(null);
+  } else {
+    setForm({
+      ...form,
+      courseContent: [
+  ...form.courseContent,
+  {
+    sectionTitle: tempSection.sectionTitle,
+    lectures: tempSection.lectures.map((lec) => ({
+      lessonId: lec.lessonId,
+      title: lec.title,
+      duration: lec.duration,
+    })),
+  }
+],
+    });
+  }
 
-      setForm({
-        ...form,
-        courseContent: updated,
-      });
+  // 🔥 CLOSE MODAL
+  setShowModal(false);
 
-      setEditingIndex(null); // reset
-    } else {
-      // ✅ ADD NEW SECTION
-      setForm({
-        ...form,
-        courseContent: [...form.courseContent, tempSection],
-      });
-    }
+  // 🔥 RESET MODAL STATE (VERY IMPORTANT)
+  setTempSection({
+    sectionTitle: "",
+    lectures: [{ lessonId: "", title: "", duration: "" }],
+  });
+};
 
-    setShowModal(false);
-  };
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  // 🔥 BASIC VALIDATION
+  if (!form.title.trim()) {
+    return toast.error("Course title is required");
+  }
 
-    try {
-      const data = new FormData();
+  if (!form.category) {
+    return toast.error("Select category");
+  }
 
-      Object.keys(form).forEach((key) => {
-        if (key !== "whatYouWillLearn" && key !== "courseContent") {
-          data.append(key, form[key]);
-        }
-      });
+  if (!form.level) {
+    return toast.error("Select level");
+  }
 
+  if (!form.courseContent.length) {
+    return toast.error("Add at least one section");
+  }
+
+  // 🔥 CHECK EMPTY LECTURES
+  const hasInvalidLecture = form.courseContent.some(section =>
+    section.lectures.some(lec => !lec.lessonId)
+  );
+
+  if (hasInvalidLecture) {
+    return toast.error("Some lectures are not selected");
+  }
+
+  setLoading(true);
+
+  try {
+    const data = new FormData();
+
+    Object.keys(form).forEach((key) => {
+      if (key !== "whatYouWillLearn" && key !== "courseContent") {
+        data.append(key, form[key]);
+      }
+    });
+
+    // 🔥 SAFE IMAGE APPEND
+    if (image) {
       data.append("image", image);
-      data.append("whatYouWillLearn", JSON.stringify(form.whatYouWillLearn));
-      data.append("courseContent", JSON.stringify(form.courseContent));
-
-      await API.post("/courses", data, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      toast.success("Course Added Successfully ");
-
-      setForm({
-        title: "",
-        lessons: "",
-        category: "",
-        level: "",
-        description: "",
-        instructor: "",
-        duration: "",
-        enrolled: "",
-        language: "",
-        price: "",
-        whatYouWillLearn: [""],
-        courseContent: []
-      });
-
-      setImage(null);
-      setPreview(null);
-
-    } catch (err) {
-      toast.error("Failed to add course ❌");
-    } finally {
-      setLoading(false);
     }
-  };
+
+const cleanedLearn = form.whatYouWillLearn.filter(item => item.trim());
+
+data.append(
+  "whatYouWillLearn",
+  JSON.stringify(cleanedLearn)
+);
+
+    data.append(
+      "courseContent",
+      JSON.stringify(form.courseContent)
+    );
+
+    await API.post("/courses", data, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    toast.success("Course Added Successfully 🚀");
+
+    // 🔥 RESET FORM
+    setForm({
+      title: "",
+      lessons: "",
+      category: "",
+      previewVideo: "",
+      level: "",
+      description: "",
+      instructor: "",
+      duration: "",
+      enrolled: "",
+      language: "",
+      price: "",
+      whatYouWillLearn: [""],
+      courseContent: [],
+    });
+
+    setImage(null);
+    setPreview(null);
+
+  } catch (err) {
+    console.log(err);
+    toast.error("Failed to add course ❌");
+  } finally {
+    setLoading(false);
+  }
+};
   const deleteSection = (index) => {
     const updated = form.courseContent.filter((_, i) => i !== index);
     setForm({ ...form, courseContent: updated });
@@ -341,9 +459,13 @@ export default function AddCourse() {
                       style={{ width: "36px", height: "36px" }}
                       onClick={() => {
                         setTempSection({
-                          ...section,
-                          lectures: [...section.lectures],
-                        });
+  sectionTitle: section.sectionTitle,
+  lectures: section.lectures.map((lec) => ({
+    lessonId: lec.lessonId,
+    title: lec.title,
+    duration: lec.duration,
+  })),
+});
                         setShowModal(true);
                         setEditingIndex(sIndex);
                       }}
@@ -555,8 +677,10 @@ export default function AddCourse() {
                             const updated = [...tempSection.lectures];
 
                             updated[i] = {
-                              lessonId: selected._id,
-                            };
+  lessonId: selected._id,
+  title: selected.lectureTitle,
+  duration: selected.duration,
+};
 
                             setTempSection({
                               ...tempSection,
